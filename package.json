@@ -3,8 +3,6 @@
   "version": "0.1.0",
   "description": "A HashiCorp Terraform wrapper",
   "main": "src/index.js",
-  "module": "src/index.js",
-  "jsnext:main": "src/index.js",
   "files": [
     "src"
   ],
@@ -15,7 +13,7 @@
   "keywords": [
     "terraform",
     "hashicorp",
-    "tjfs"
+    "terraformjs"
   ],
   "authors": [
     "Nir Cohen <nir@strigo.io> (https://github.com/nir0s)"
@@ -26,7 +24,7 @@
   },
   "homepage": "http://github.com/strigo/terraformjs",
   "dependencies": {
-    "which": "^0.1.0",
-    "shelljs": "^0.1.0"
+    "which": "^1.2.12",
+    "shelljs": "^0.7.6"
   }
 }
