@@ -39,9 +39,7 @@ let outcome = tf.apply()
 console.log(outcome.stdout)
 
 // A commands positional arguments will be passed like so:
-let outcome = tf.apply(process.cwd(), {'state': 'my-state-file.tfstate',
-          'var': {'foo': 'bar', 'bah': 'boo'},
-          'vars_file': ['x.tfvars', 'y.tfvars']})
+let outcome = tf.apply(process.cwd())
 
 // To pass options:
 let outcome = tf.apply(
