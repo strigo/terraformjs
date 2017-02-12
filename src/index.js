@@ -23,9 +23,9 @@ function _assertTerraformExecutableInPath() {
 * e.g. (Terraform v0.8.5 => 0.8.5)
 */
 let version = function showVersion() {
-  outcome = sh.exec('terraform --version', {silent: true});
-  version = outcome.stdout.split(' ')[1].slice(1, -1);
-  return version;
+  let outcome = sh.exec('terraform --version', {silent: true});
+  const parsedVersion = outcome.stdout.split(' ')[1].slice(1, -1);
+  return parsedVersion;
 }
 
 
@@ -84,8 +84,7 @@ class Terraform {
     let optString = '';
 
     for (let option in opts) {
-      // console.log(`${arg}: ${args[arg]}`, typeof args[arg]);
-      if (option == 'var') {
+      if (option === 'var') {
         // TODO: handle `var` object is empty
         for (let v in opts[option]) {
           optString += ` -var '${v}=${opts[option][v]}'`;
@@ -128,7 +127,7 @@ class Terraform {
     if (this.no_color) {
       command += ' -no-color';
     }
-    outcome = sh.exec(command, {silent: this.silent});
+    const outcome = sh.exec(command, {silent: this.silent});
 
     process.chdir(cwd);
     return outcome;
