@@ -3,8 +3,10 @@
 const sh = require('shelljs');
 const which = require('which');
 
-// var terraform = which.sync('terraforms')
-
+/**
+* Assert that the terraform executable is found in the path
+* @return terraform absolute path
+*/
 function _assertTerraformExecutableInPath() {
   which('terraform', function (err, resolvedPath) {
     // er is returned if no "terraform" is found on the PATH
@@ -16,6 +18,10 @@ function _assertTerraformExecutableInPath() {
 }
 
 
+/**
+* Retrieve a stripped version of terraform's executable version.
+* e.g. (Terraform v0.8.5 => 0.8.5)
+*/
 let version = function showVersion() {
   outcome = sh.exec('terraform --version', {silent: true});
   version = outcome.stdout.split(' ')[1].slice(1, -1);
@@ -23,6 +29,15 @@ let version = function showVersion() {
 }
 
 
+/**
+ * Execute terraform commands
+ * @todo: Implement `remote`, `debug` and `state` support (which require subcommands)
+ * @todo: Assert that terraform exists before allowing to perform actions
+ * @todo: once finalized, document each command
+ * @param {String} workDir (default: cwd)
+ * @param {Boolean} silent (default: false)
+ * @param {Boolean} no_color (default: false)
+ */
 class Terraform {
 
   constructor (workDir = process.cwd(),
@@ -33,14 +48,79 @@ class Terraform {
     this.no_color = no_color;
   }
 
-  _normalizeArg(arg) {
-    arg = arg.replace('_', '-');
-    arg = `-${arg}`;
-    return arg;
+  /**
+   * Normalize an option.
+   * e.g. Converts `vars_file` to `-vars-file`.
+   * @param {String} option string to normalize
+   * @return {String} normalized.
+   */
+  _normalizeArg(opt) {
+    opt = opt.replace('_', '-');
+    opt = `-${opt}`;
+    return opt;
   }
 
-  _executeTerraformCommand(subCommand, optString) {
+  /**
+  * Construct a string from an object of options
+  *
+  *  For instance:
+  *    {
+  *      'state': 'state.tfstate',
+  *      'var': {
+  *        'foo': 'bar',
+  *        'bah': 'boo'
+  *      },
+  *      'vars_file': [
+  *        'x.tfvars',
+  *        'y.tfvars'
+  *      ]
+  *    }
+  * will be converted to:
+  *   `-state=state.tfstate -var 'foo=bar' -var 'bah=boo' -vars-file=x.tfvars -vars-file=y.tfvars`
+  * @param {Object} opts - an object of options
+  * @return {String} optString - a string of options
+  */
+  _constructOptString(opts) {
+    let optString = '';
+
+    for (let option in opts) {
+      // console.log(`${arg}: ${args[arg]}`, typeof args[arg]);
+      if (option == 'var') {
+        // TODO: handle `var` object is empty
+        for (let v in opts[option]) {
+          optString += ` -var '${v}=${opts[option][v]}'`;
+        }
+      }
+      else if (typeof opts[option] === 'boolean') {
+        if (opts[option]) {
+          optString += ` -${option}`;
+        }
+      }
+      else if (Array.isArray(opts[option])) {
+        for (let item of opts[option]) {
+          optString += ` ${this._normalizeArg(option)}=${item}`;
+        }
+      }
+      else {
+        optString += ` ${this._normalizeArg(option)}=${opts[option]}`;
+      }
+    }
+    return optString;
+  }
+
+  /**
+  * Execute a terraform subcommand with its arguments and options
+  * @param {String} subCommand - the name of the subcommand to run
+  * @param {String} args - an object of terraform command options
+  * @return {Object} shelljs exec object
+  */
+  _cmd(subCommand, args) {
+
     let command = `terraform ${subCommand}`;
+    let optString = this._constructOptString(args);
+
+    let cwd = process.cwd();
+    process.chdir(this.workDir);
 
     if (typeof optString !== 'undefined') {
       command += optString;
@@ -48,68 +128,29 @@ class Terraform {
     if (this.no_color) {
       command += ' -no-color';
     }
-
-    throw('XXXXXXX')
-    return sh.exec(command, {silent: this.silent});
-  }
-
-  _generateArgString(args) {
-    let optString = '';
-
-    for (let arg in args) {
-      // console.log(`${arg}: ${args[arg]}`, typeof args[arg]);
-      if (arg == 'var') {
-        // TODO: handle `var` object is empty
-        for (let v in args[arg]) {
-          optString += ` -var '${v}=${args[arg][v]}'`;
-        }
-      }
-      else if (typeof args[arg] === 'boolean') {
-        if (args[arg]) {
-          optString += ` -${arg}`;
-        }
-      }
-      else {
-        optString += ` ${this._normalizeArg(arg)}=${args[arg]}`;
-      }
-    }
-    return optString
-  }
-
-  _cmd(subCommand, args) {
-
-    let cwd = process.cwd();
-    process.chdir(this.workDir);
-
-    let optString = this._generateArgString(args);
-    let outcome = this._executeTerraformCommand(subCommand, optString);
+    outcome = sh.exec(command, {silent: this.silent});
 
     process.chdir(cwd);
     return outcome;
   }
 
-  /**
-   * Execute `terraform apply`
-   * @param {String} dirOrPlan (default: cwd)
-   * @return {Object} outcome
-   */
   apply(dirOrPlan, args) {
-    let commandString = 'apply ' + (typeof dirOrPlan === 'undefined' ? '' : dirOrPlan);
+    let commandString = 'apply' + (typeof dirOrPlan === 'undefined' ? '' : ` ${dirOrPlan}`);
     return this._cmd(commandString, args);
   }
 
   destroy(dir, args) {
-    let commandString = 'destroy ' + (typeof dir === 'undefined' ? '' : dir);
+    let commandString = 'destroy' + (typeof dir === 'undefined' ? '' : ` ${dir}`);
     return this._cmd(commandString, args);
   }
 
   console(dir, args) {
-    let commandString = 'console ' + (typeof dir === 'undefined' ? '' : dir);
+    let commandString = 'console' + (typeof dir === 'undefined' ? '' : ` ${dir}`);
     return this._cmd(commandString, args);
   }
 
   fmt(dir, args) {
-    let commandString = 'fmt ' + (typeof dir === 'undefined' ? '' : dir);
+    let commandString = 'fmt' + (typeof dir === 'undefined' ? '' : ` ${dir}`);
     return this._cmd(commandString, args);
   }
 
@@ -119,7 +160,7 @@ class Terraform {
   }
 
   graph(dir, args) {
-    let commandString = 'graph ' + (typeof dir === 'undefined' ? '' : dir);
+    let commandString = 'graph' + (typeof dir === 'undefined' ? '' : ` ${dir}`);
     return this._cmd(commandString, args);
   }
 
@@ -129,34 +170,32 @@ class Terraform {
   }
 
   init(source, path, args) {
-    let commandString = `init ${source} ` + (typeof path === 'undefined' ? '' : path);
+    let commandString = `init ${source}` + (typeof path === 'undefined' ? '' : ` ${path}`);
     return this._cmd(commandString, args);
   }
 
   output(name, args) {
-    let commandString = 'output ' + (typeof name === 'undefined' ? '' : name);
+    let commandString = 'output' + (typeof name === 'undefined' ? '' : ` ${name}`);
     return this._cmd(commandString, args);
   }
 
   plan(dirOrPlan, args) {
-    let commandString = 'plan ' + (typeof dirOrPlan === 'undefined' ? '' : dirOrPlan);
+    let commandString = 'plan' + (typeof dirOrPlan === 'undefined' ? '' : ` ${dirOrPlan}`);
     return this._cmd(commandString, args);
   }
 
   push(dir, args) {
-    let commandString = 'push ' + (typeof dir === 'undefined' ? '' : dir);
+    let commandString = 'push' + (typeof dir === 'undefined' ? '' : ` ${dir}`);
     return this._cmd(commandString, args);
   }
 
   refresh(dir, args) {
-    let commandString = 'refresh ' + (typeof dir === 'undefined' ? '' : dir);
+    let commandString = 'refresh' + (typeof dir === 'undefined' ? '' : ` ${dir}`);
     return this._cmd(commandString, args);
   }
 
-  // TODO: Implement `remote` support (which requires subcommands)
-
   show(path, args) {
-    let commandString = 'show ' + (typeof path === 'undefined' ? '' : path);
+    let commandString = 'show' + (typeof path === 'undefined' ? '' : ` ${path}`);
     return this._cmd(commandString, args);
   }
 
@@ -171,7 +210,7 @@ class Terraform {
   }
 
   validate(path, args) {
-    let commandString = 'validate ' + (typeof path === 'undefined' ? '' : path);
+    let commandString = 'validate' + (typeof path === 'undefined' ? '' : ` ${path}`);
     return this._cmd(commandString, args);
   }
 
@@ -181,10 +220,8 @@ module.exports.Terraform = Terraform;
 module.exports.version = version;
 
 
-let tf = new Terraform('./', true, true);
-// tf.apply({'state': 'my-state-file.tfstate',
+// let tf = new Terraform('./', true, true);
+// let outcome = tf.apply(process.cwd(), {'state': 'my-state-file.tfstate',
 //           'var': {'foo': 'bar', 'bah': 'boo'},
-//           'var_file': 'varfile', '-'})
-
-// tf.destroy('my-dir', {'force': true, 'parallelism': 10});
-tf.get()
+//           'vars_file': ['x.tfvars', 'y.tfvars']})
+// console.log(outcome.stdout)
