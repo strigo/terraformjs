@@ -33,23 +33,23 @@ var terraform = require('terraformjs')
 console.log(terraform.version())
 // 0.8.5
 
-
-let tf = new terraform.Terraform();
+# The constructor receives the following three arguments:
+# workDir = process.cwd(), silent = false, noColor = false
+let tf = new terraform.Terraform(workDir, silent, noColor);
 let outcome = tf.apply()
 console.log(outcome.stdout)
 
-// A commands positional arguments will be passed like so:
-let outcome = tf.apply(process.cwd())
-
 // To pass options:
 let outcome = tf.apply(
-    process.cwd(), 
     {
         'state': 'my-state-file.tfstate',
         'var': {'foo': 'bar', 'bah': 'boo'},
         'vars_file': ['x.tfvars', 'y.tfvars']
     }
 )
+
+// A commands positional arguments will be passed alongside an object of options:
+let outcome = tf.apply({}, process.cwd())
 
 ```
 

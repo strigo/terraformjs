@@ -1,32 +1,15 @@
-'use strict';
-
 const sh = require('shelljs');
-const which = require('which');
-
-/**
-* Assert that the terraform executable is found in the path
-* @return terraform absolute path
-*/
-function _assertTerraformExecutableInPath() {
-  which('terraform', function (err, resolvedPath) {
-    // er is returned if no "terraform" is found on the PATH
-    // if it is found, then the absolute path to the exec is returned
-    if (err)
-      throw('The `terraform` executable could not be found in the path')
-    return resolvedPath
-  })
-}
 
 
 /**
 * Retrieve a stripped version of terraform's executable version.
 * e.g. (Terraform v0.8.5 => 0.8.5)
 */
-let version = function showVersion() {
-  let outcome = sh.exec('terraform --version', {silent: true});
-  const parsedVersion = outcome.stdout.split(' ')[1].slice(1, -1);
+const version = function showVersion() {
+  const outcome = sh.exec('terraform --version', { silent: true });
+  const parsedVersion = outcome.stdout.split('\n')[0].split(' ')[1].substr(1);
   return parsedVersion;
-}
+};
 
 
 /**
@@ -36,16 +19,14 @@ let version = function showVersion() {
  * @todo: once finalized, document each command
  * @param {String} workDir (default: cwd)
  * @param {Boolean} silent (default: false)
- * @param {Boolean} no_color (default: false)
+ * @param {Boolean} noColor (default: false)
  */
 class Terraform {
 
-  constructor (workDir = process.cwd(),
-               silent = false,
-               no_color = false) {
+  constructor(workDir = process.cwd(), silent = false, noColor = false) {
     this.workDir = workDir;
     this.silent = silent;
-    this.no_color = no_color;
+    this.noColor = noColor;
   }
 
   /**
@@ -54,10 +35,10 @@ class Terraform {
    * @param {String} option string to normalize
    * @return {String} normalized.
    */
-  _normalizeArg(opt) {
-    opt = opt.replace('_', '-');
-    opt = `-${opt}`;
-    return opt;
+  static normalizeArg(opt) {
+    let normalizedOpt = opt.replace('_', '-');
+    normalizedOpt = `-${normalizedOpt}`;
+    return normalizedOpt;
   }
 
   /**
@@ -80,137 +61,112 @@ class Terraform {
   * @param {Object} opts - an object of options
   * @return {String} optString - a string of options
   */
-  _constructOptString(opts) {
+  constructOptString(opts) {
+    // MAP/forEach
+    // push+join array instead of string concat
     let optString = '';
 
-    for (let option in opts) {
+    Object.keys(opts).forEach((option) => {
       if (option === 'var') {
-        // TODO: handle `var` object is empty
-        for (let v in opts[option]) {
+        Object.keys(opts[option]).forEach((v) => {
           optString += ` -var '${v}=${opts[option][v]}'`;
-        }
-      }
-      else if (typeof opts[option] === 'boolean') {
+        });
+      } else if (typeof opts[option] === 'boolean') {
         if (opts[option]) {
           optString += ` -${option}`;
         }
+      } else if (Array.isArray(opts[option])) {
+        opts[option].forEach((item) => {
+          optString += ` ${Terraform.normalizeArg(option)}=${item}`;
+        });
       }
-      else if (Array.isArray(opts[option])) {
-        for (let item of opts[option]) {
-          optString += ` ${this._normalizeArg(option)}=${item}`;
-        }
-      }
-      else {
-        optString += ` ${this._normalizeArg(option)}=${opts[option]}`;
-      }
+    });
+
+    if (this.noColor) {
+      optString += ' -no-color';
     }
     return optString;
   }
 
   /**
   * Execute a terraform subcommand with its arguments and options
-  * @param {String} subCommand - the name of the subcommand to run
-  * @param {String} args - an object of terraform command options
+  * @param {String} subCommandString - a subcommand + options string
   * @return {Object} shelljs exec object
   */
-  _cmd(subCommand, args) {
+  terraform(subCommandString) {
+    const command = `terraform ${subCommandString}`;
+    const cwd = process.cwd();
 
-    let command = `terraform ${subCommand}`;
-    let optString = this._constructOptString(args);
-
-    let cwd = process.cwd();
     process.chdir(this.workDir);
 
-    if (typeof optString !== 'undefined') {
-      command += optString;
-    }
-    if (this.no_color) {
-      command += ' -no-color';
-    }
-    const outcome = sh.exec(command, {silent: this.silent});
+    const outcome = sh.exec(command, { silent: this.silent });
 
     process.chdir(cwd);
     return outcome;
   }
 
-  apply(dirOrPlan, args) {
-    let commandString = 'apply' + (typeof dirOrPlan === 'undefined' ? '' : ` ${dirOrPlan}`);
-    return this._cmd(commandString, args);
+  apply(args, dirOrPlan = '') {
+    return this.terraform(`apply${this.constructOptString(args)} ${dirOrPlan}`);
   }
 
-  destroy(dir, args) {
-    let commandString = 'destroy' + (typeof dir === 'undefined' ? '' : ` ${dir}`);
-    return this._cmd(commandString, args);
+  destroy(args, dir = '') {
+    return this.terraform(`destroy${this.constructOptString(args)} ${dir}`);
   }
 
-  console(dir, args) {
-    let commandString = 'console' + (typeof dir === 'undefined' ? '' : ` ${dir}`);
-    return this._cmd(commandString, args);
+  console(args, dir = '') {
+    return this.terraform(`console${this.constructOptString(args)} ${dir}`);
   }
 
-  fmt(dir, args) {
-    let commandString = 'fmt' + (typeof dir === 'undefined' ? '' : ` ${dir}`);
-    return this._cmd(commandString, args);
+  fmt(args, dir = '') {
+    return this.terraform(`fmt${this.constructOptString(args)} ${dir}`);
   }
 
-  get(path = process.cwd(), args) {
-    let commandString = `get ${path}`;
-    return this._cmd(commandString, args);
+  get(args, path = process.cwd()) {
+    return this.terraform(`get${this.constructOptString(args)} ${path}`);
   }
 
-  graph(dir, args) {
-    let commandString = 'graph' + (typeof dir === 'undefined' ? '' : ` ${dir}`);
-    return this._cmd(commandString, args);
+  graph(args, dir) {
+    return this.terraform(`graph${this.constructOptString(args)} ${dir}`);
   }
 
-  import(addrId, args) {
-    let commandString = `graph ${addrId}`;
-    return this._cmd(commandString, args);
+  import(args, addrId) {
+    return this.terraform(`import${this.constructOptString(args)} ${addrId}`);
   }
 
-  init(source, path, args) {
-    let commandString = `init ${source}` + (typeof path === 'undefined' ? '' : ` ${path}`);
-    return this._cmd(commandString, args);
+  init(args, source, path) {
+    return this.terraform(`init${this.constructOptString(args)} ${source} ${path}`);
   }
 
-  output(name, args) {
-    let commandString = 'output' + (typeof name === 'undefined' ? '' : ` ${name}`);
-    return this._cmd(commandString, args);
+  output(args, name) {
+    return this.terraform(`output${this.constructOptString(args)} ${name}`);
   }
 
-  plan(dirOrPlan, args) {
-    let commandString = 'plan' + (typeof dirOrPlan === 'undefined' ? '' : ` ${dirOrPlan}`);
-    return this._cmd(commandString, args);
+  plan(args, dirOrPlan) {
+    return this.terraform(`plan${this.constructOptString(args)} ${dirOrPlan}`);
   }
 
-  push(dir, args) {
-    let commandString = 'push' + (typeof dir === 'undefined' ? '' : ` ${dir}`);
-    return this._cmd(commandString, args);
+  push(args, dir) {
+    return this.terraform(`push${this.constructOptString(args)} ${dir}`);
   }
 
-  refresh(dir, args) {
-    let commandString = 'refresh' + (typeof dir === 'undefined' ? '' : ` ${dir}`);
-    return this._cmd(commandString, args);
+  refresh(args, dir) {
+    return this.terraform(`refresh${this.constructOptString(args)} ${dir}`);
   }
 
-  show(path, args) {
-    let commandString = 'show' + (typeof path === 'undefined' ? '' : ` ${path}`);
-    return this._cmd(commandString, args);
+  show(args, path) {
+    return this.terraform(`show${this.constructOptString(args)} ${path}`);
   }
 
-  taint(name, args) {
-    let commandString = `taint ${name}`;
-    return this._cmd(commandString, args);
+  taint(args, name) {
+    return this.terraform(`taint${this.constructOptString(args)} ${name}`);
   }
 
-  untaint(name, args) {
-    let commandString = `untaint ${name}`;
-    return this._cmd(commandString, args);
+  untaint(args, name) {
+    return this.terraform(`untaint${this.constructOptString(args)} ${name}`);
   }
 
-  validate(path, args) {
-    let commandString = 'validate' + (typeof path === 'undefined' ? '' : ` ${path}`);
-    return this._cmd(commandString, args);
+  validate(args, path) {
+    return this.terraform(`validate${this.constructOptString(args)} ${path}`);
   }
 
 }
