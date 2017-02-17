@@ -24,6 +24,7 @@ describe('normalizeArgName', () => {
 describe('constructOptString', () => {
   describe('noOpts', () => {
     const tf = new terraform.Terraform();
+
     it('should return an empty object', () => {
       assert.equal(tf._constructOptString({}), '');
     });
@@ -31,6 +32,7 @@ describe('constructOptString', () => {
 
   describe('noOptsNoColor', () => {
     const tf = new terraform.Terraform('./', false, true);
+
     it('should return the ` -no-color` option', () => {
       assert.equal(tf._constructOptString({}), ' -no-color');
     });
@@ -45,6 +47,7 @@ describe('constructOptString', () => {
       'vars_file': ['y.tfvars', 'z.tfvars']
     };
     const optString = " -force -state=x.tfstate -var 'foo=bar' -var 'bah=boo' -vars-file=y.tfvars -vars-file=z.tfvars"
+
     it('should return the ` -no-color` option', () => {
       assert.equal(tf._constructOptString(optObj), optString);
     });
