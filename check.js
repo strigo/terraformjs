@@ -1,4 +1,4 @@
-const terraform = require('terraformjs');
+const terraform = require('./src/index.js');
 
 // let tf = new terraform.Terraform('./', true, true);
 // let outcome = tf.apply(process.cwd(), {'state': 'my-state-file.tfstate',

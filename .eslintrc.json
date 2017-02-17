@@ -2,5 +2,44 @@
     "extends": "airbnb-base",
     "plugins": [
         "import"
-    ]
+    ],
+    "rules": {
+      "valid-jsdoc": ["error", {
+        "prefer": {
+          "arg": "param",
+          "argument": "param",
+          "class": "constructor",
+          "return": "return",
+          "virtual": "abstract"
+        },
+        "preferType": {
+          "Boolean": "Boolean",
+          "Number": "Number",
+          "object": "Object",
+          "String": "String"
+        }
+      }],
+      "require-jsdoc": ["error", {
+          "require": {
+              "FunctionDeclaration": true,
+              "MethodDefinition": true,
+              "ClassDeclaration": true,
+              "ArrowFunctionExpression": true
+          }
+      }],
+      "no-console": "off",
+      "func-names": [
+        "error",
+        "as-needed"
+      ],
+      "no-underscore-dangle": "off"
+    },
+    "env": {
+      "mocha": true,
+      "node": true
+    },
+    "parserOptions": {
+      "ecmaVersion": 8,
+      "sourceType": "module"
+    }
 }

@@ -28,8 +28,16 @@
     "shelljs": "^0.7.6"
   },
   "devDependencies": {
+    "chai": "^3.5.0",
     "eslint": "^3.15.0",
     "eslint-config-airbnb-base": "^11.1.0",
-    "eslint-plugin-import": "^2.2.0"
+    "eslint-plugin-import": "^2.2.0",
+    "eslint-plugin-react": "^6.7.1",
+    "mocha": "^3.2.0",
+    "sinon": "^1.17.7"
+  },
+  "scripts": {
+    "test": "mocha",
+    "lint": "eslint ."
   }
 }

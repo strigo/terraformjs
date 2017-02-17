@@ -2,27 +2,29 @@ const sh = require('shelljs');
 
 
 /**
-* Retrieve a stripped version of terraform's executable version.
-* e.g. (Terraform v0.8.5 => 0.8.5)
-*/
+ * Retrieve a stripped version of terraform's executable version.
+ * e.g. (Terraform v0.8.5 => 0.8.5)
+ * @returns {String} A stripped string representing the version
+ */
 const version = function showVersion() {
   const outcome = sh.exec('terraform --version', { silent: true });
   const parsedVersion = outcome.stdout.split('\n')[0].split(' ')[1].substr(1);
   return parsedVersion;
 };
 
-
 /**
- * Execute terraform commands
- * @todo: Implement `remote`, `debug` and `state` support (which require subcommands)
- * @todo: Assert that terraform exists before allowing to perform actions
- * @todo: once finalized, document each command
- * @param {String} workDir (default: cwd)
- * @param {Boolean} silent (default: false)
- * @param {Boolean} noColor (default: false)
+ * Terraform API Class
  */
 class Terraform {
-
+  /**
+   * Execute terraform commands
+   * @todo: Implement `remote`, `debug` and `state` support (which require subcommands)
+   * @todo: Assert that terraform exists before allowing to perform actions
+   * @todo: once finalized, document each command
+   * @param {String} workDir (default: cwd)
+   * @param {Boolean} silent (default: false)
+   * @param {Boolean} noColor (default: false)
+   */
   constructor(workDir = process.cwd(), silent = false, noColor = false) {
     this.workDir = workDir;
     this.silent = silent;
@@ -32,10 +34,10 @@ class Terraform {
   /**
    * Normalize an option.
    * e.g. Converts `vars_file` to `-vars-file`.
-   * @param {String} option string to normalize
-   * @return {String} normalized.
+   * @param {String} opt string to normalize
+   * @returns {String} A normalized option
    */
-  static normalizeArg(opt) {
+  static _normalizeArg(opt) {
     let normalizedOpt = opt.replace('_', '-');
     normalizedOpt = `-${normalizedOpt}`;
     return normalizedOpt;
@@ -59,9 +61,9 @@ class Terraform {
   * will be converted to:
   *   `-state=state.tfstate -var 'foo=bar' -var 'bah=boo' -vars-file=x.tfvars -vars-file=y.tfvars`
   * @param {Object} opts - an object of options
-  * @return {String} optString - a string of options
+  * @return {String} a string of CLI options
   */
-  constructOptString(opts) {
+  _constructOptString(opts) {
     // MAP/forEach
     // push+join array instead of string concat
     let optString = '';
@@ -77,8 +79,10 @@ class Terraform {
         }
       } else if (Array.isArray(opts[option])) {
         opts[option].forEach((item) => {
-          optString += ` ${Terraform.normalizeArg(option)}=${item}`;
+          optString += ` ${Terraform._normalizeArg(option)}=${item}`;
         });
+      } else {
+        optString += ` ${Terraform._normalizeArg(option)}=${opts[option]}`;
       }
     });
 
@@ -105,70 +109,167 @@ class Terraform {
     return outcome;
   }
 
-  apply(args, dirOrPlan = '') {
-    return this.terraform(`apply${this.constructOptString(args)} ${dirOrPlan}`);
+  /**
+   * Execute `terraform apply`
+   * @param  {Object} args      option=value pairs for this subcommand
+   * @param  {String} dirOrPlan Directory in which the plan resides
+   * @return {Object}           shelljs execution outcome
+   */
+  apply(args = {}, dirOrPlan = '') {
+    return this.terraform(`apply${this._constructOptString(args)} ${dirOrPlan}`);
   }
 
-  destroy(args, dir = '') {
-    return this.terraform(`destroy${this.constructOptString(args)} ${dir}`);
+  /**
+   * Execute `terraform destroy`
+   * @param  {Object} args      option=value pairs for this subcommand
+   * @param  {String} dir       Directory in which the plan resides
+   * @return {Object}           shelljs execution outcome
+   */
+  destroy(args = {}, dir = '') {
+    return this.terraform(`destroy${this._constructOptString(args)} ${dir}`);
   }
 
-  console(args, dir = '') {
-    return this.terraform(`console${this.constructOptString(args)} ${dir}`);
+  /**
+   * Execute `terraform console`
+   * @param  {Object} args      option=value pairs for this subcommand
+   * @param  {String} dir       Directory in which the plan resides
+   * @return {Object}           shelljs execution outcome
+   */
+  console(args = {}, dir = '') {
+    return this.terraform(`console${this._constructOptString(args)} ${dir}`);
   }
 
-  fmt(args, dir = '') {
-    return this.terraform(`fmt${this.constructOptString(args)} ${dir}`);
+  /**
+   * Execute `terraform fmt`
+   * @param  {Object} args      option=value pairs for this subcommand
+   * @param  {String} dir       Directory in which the plan resides
+   * @return {Object}           shelljs execution outcome
+   */
+  fmt(args = {}, dir = '') {
+    return this.terraform(`fmt${this._constructOptString(args)} ${dir}`);
   }
 
-  get(args, path = process.cwd()) {
-    return this.terraform(`get${this.constructOptString(args)} ${path}`);
+  /**
+   * Execute `terraform get`
+   * @param  {Object} args      option=value pairs for this subcommand
+   * @param  {String} path      Path to install modules for
+   * @return {Object}           shelljs execution outcome
+   */
+  get(args = {}, path = process.cwd()) {
+    return this.terraform(`get${this._constructOptString(args)} ${path}`);
   }
 
-  graph(args, dir) {
-    return this.terraform(`graph${this.constructOptString(args)} ${dir}`);
+  /**
+   * Execute `terraform graph`
+   * @param  {Object} args      option=value pairs for this subcommand
+   * @param  {String} dir       Directory in which the plan resides
+   * @return {Object}           shelljs execution outcome
+   */
+  graph(args = {}, dir = '') {
+    return this.terraform(`graph${this._constructOptString(args)} ${dir}`);
   }
 
-  import(args, addrId) {
-    return this.terraform(`import${this.constructOptString(args)} ${addrId}`);
+  /**
+   * Execute `terraform import`
+   * @param  {Object} args      option=value pairs for this subcommand
+   * @param  {String} addr      Address to import the resource to
+   * @param  {String} id        resource-specific ID to identify that resource being imported
+   * @return {Object}           shelljs execution outcome
+   */
+  import(args = {}, addr, id) {
+    return this.terraform(`import${this._constructOptString(args)} ${addr} ${id}`);
   }
 
-  init(args, source, path) {
-    return this.terraform(`init${this.constructOptString(args)} ${source} ${path}`);
+  /**
+   * Execute `terraform init`
+   * @param  {Object} args      option=value pairs for this subcommand
+   * @param  {String} source    Source to download from
+   * @param  {String} path      Path to download to
+   * @return {Object}           shelljs execution outcome
+   */
+  init(args = {}, source, path = process.cwd()) {
+    return this.terraform(`init${this._constructOptString(args)} ${source} ${path}`);
   }
 
-  output(args, name) {
-    return this.terraform(`output${this.constructOptString(args)} ${name}`);
+  /**
+   * Execute `terraform output`
+   * @param  {Object} args      option=value pairs for this subcommand
+   * @param  {String} name      Name of resource to display outputs for (defaults to all)
+   * @return {Object}           shelljs execution outcome
+   */
+  output(args = {}, name) {
+    return this.terraform(`output${this._constructOptString(args)} ${name}`);
   }
 
-  plan(args, dirOrPlan) {
-    return this.terraform(`plan${this.constructOptString(args)} ${dirOrPlan}`);
+  /**
+   * Execute `terraform plan`
+   * @param  {Object} args      option=value pairs for this subcommand
+   * @param  {String} dirOrPlan Directory in which the plan resides
+   * @return {Object}           shelljs execution outcome
+   */
+  plan(args = {}, dirOrPlan) {
+    return this.terraform(`plan${this._constructOptString(args)} ${dirOrPlan}`);
   }
 
-  push(args, dir) {
-    return this.terraform(`push${this.constructOptString(args)} ${dir}`);
+  /**
+   * Execute `terraform push`
+   * @param  {Object} args      option=value pairs for this subcommand
+   * @param  {String} dir       Directory in which the plan resides
+   * @return {Object}           shelljs execution outcome
+   */
+  push(args = {}, dir = '') {
+    return this.terraform(`push${this._constructOptString(args)} ${dir}`);
   }
 
-  refresh(args, dir) {
-    return this.terraform(`refresh${this.constructOptString(args)} ${dir}`);
+  /**
+   * Execute `terraform refresh`
+   * @param  {Object} args      option=value pairs for this subcommand
+   * @param  {String} dir       Directory in which the plan resides
+   * @return {Object}           shelljs execution outcome
+   */
+  refresh(args = {}, dir = '') {
+    return this.terraform(`refresh${this._constructOptString(args)} ${dir}`);
   }
 
-  show(args, path) {
-    return this.terraform(`show${this.constructOptString(args)} ${path}`);
+  /**
+   * Execute `terraform show`
+   * @param  {Object} args      option=value pairs for this subcommand
+   * @param  {String} path      Path of state file (defaults to local state file)
+   * @return {Object}           shelljs execution outcome
+   */
+  show(args = {}, path) {
+    return this.terraform(`show${this._constructOptString(args)} ${path}`);
   }
 
-  taint(args, name) {
-    return this.terraform(`taint${this.constructOptString(args)} ${name}`);
+  /**
+   * Execute `terraform taint`
+   * @param  {Object} args      option=value pairs for this subcommand
+   * @param  {String} name      Name of resource to taint
+   * @return {Object}           shelljs execution outcome
+   */
+  taint(args = {}, name) {
+    return this.terraform(`taint${this._constructOptString(args)} ${name}`);
   }
 
-  untaint(args, name) {
-    return this.terraform(`untaint${this.constructOptString(args)} ${name}`);
+  /**
+   * Execute `terraform untaint`
+   * @param  {Object} args      option=value pairs for this subcommand
+   * @param  {String} name      Name of resource to untaint
+   * @return {Object}           shelljs execution outcome
+   */
+  untaint(args = {}, name) {
+    return this.terraform(`untaint${this._constructOptString(args)} ${name}`);
   }
 
-  validate(args, path) {
-    return this.terraform(`validate${this.constructOptString(args)} ${path}`);
+  /**
+   * Execute `terraform validate`
+   * @param  {Object} args      option=value pairs for this subcommand
+   * @param  {String} path      Path to validate terraform files in (defaults to current)
+   * @return {Object}           shelljs execution outcome
+   */
+  validate(args = {}, path) {
+    return this.terraform(`validate${this._constructOptString(args)} ${path}`);
   }
-
 }
 
 module.exports.Terraform = Terraform;
