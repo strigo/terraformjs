@@ -41,16 +41,15 @@ describe('constructOptString', () => {
   describe('allOpts', () => {
     const tf = new terraform.Terraform();
     const optObj = {
-      'force': true,
-      'state': 'x.tfstate',
-      'var': {'foo': 'bar', 'bah': 'boo'},
-      'vars_file': ['y.tfvars', 'z.tfvars']
+      force: true,
+      state: 'x.tfstate',
+      var: { foo: 'bar', bah: 'boo' },
+      vars_file: ['y.tfvars', 'z.tfvars'],
     };
-    const optString = " -force -state=x.tfstate -var 'foo=bar' -var 'bah=boo' -vars-file=y.tfvars -vars-file=z.tfvars"
+    const optString = " -force -state=x.tfstate -var 'foo=bar' -var 'bah=boo' -vars-file=y.tfvars -vars-file=z.tfvars";
 
     it('should return the ` -no-color` option', () => {
       assert.equal(tf._constructOptString(optObj), optString);
     });
   });
-
 });

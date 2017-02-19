@@ -6,6 +6,7 @@ terraformjs
 [![Code Coverage](https://codecov.io/github/strigo/terraformjs/coverage.svg?branch=master)](https://codecov.io/github/strigo/terraformjs?branch=master)
 [![Code Climate](https://codeclimate.com/github/strigo/terraformjs/badges/gpa.svg)](https://codeclimate.com/github/strigo/terraformjs)
 [![Dependency Status](https://img.shields.io/david/strigo/terraformjs.svg?style=flat-square)](https://david-dm.org/strigo/terraformjs)
+[![Dependency Status](https://dependencyci.com/github/strigo/terraformjs/badge)](https://dependencyci.com/github/strigo/terraformjs)
 [![Known Vulnerabilities](https://snyk.io/test/npm/terraformjs/badge.svg?style=flat-square)](https://snyk.io/test/npm/terraformjs)
 
 
