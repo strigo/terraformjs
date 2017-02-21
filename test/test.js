@@ -1,7 +1,7 @@
 const assert = require('assert');
 const terraform = require('../src/index.js');
 
-describe('terraformVersion', () => {
+describe.skip('terraformVersion', () => {
   it('should return the version of terraform', () => {
     assert.equal(terraform.version(), '0.8.5');
   });
