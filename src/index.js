@@ -4,6 +4,7 @@ const sh = require('shelljs');
 /**
  * Retrieve a stripped version of terraform's executable version.
  * e.g. (Terraform v0.8.5 => 0.8.5)
+ * @todo Use Terraform class API here instead
  * @returns {String} A stripped string representing the version
  */
 const version = function showVersion() {
@@ -18,14 +19,14 @@ const version = function showVersion() {
 class Terraform {
   /**
    * Execute terraform commands
-   * @todo: Implement `remote`, `debug` and `state` support (which require subcommands)
-   * @todo: Assert that terraform exists before allowing to perform actions
-   * @todo: once finalized, document each command
+   * @todo Implement `remote`, `debug` and `state` support (which require subcommands)
+   * @todo Assert that terraform exists before allowing to perform actions
+   * @todo once finalized, document each command
    * @param {String} workDir (default: cwd)
    * @param {Boolean} silent (default: false)
    * @param {Boolean} noColor (default: false)
    */
-  constructor(workDir = process.cwd(), silent = false, noColor = false) {
+  constructor(workDir = process.cwd(), silent = true, noColor = false) {
     this.workDir = workDir;
     this.silent = silent;
     this.noColor = noColor;
@@ -94,16 +95,21 @@ class Terraform {
 
   /**
   * Execute a terraform subcommand with its arguments and options
+  * @todo append subCommandString only if it's not undefined
   * @param {String} subCommandString - a subcommand + options string
   * @return {Object} shelljs exec object
   */
   terraform(subCommandString) {
-    const command = `terraform ${subCommandString}`;
+    let command = 'terraform';
+    if (subCommandString) {
+      command = `${command} ${subCommandString}`;
+    }
     const cwd = process.cwd();
 
     process.chdir(this.workDir);
 
     const outcome = sh.exec(command, { silent: this.silent });
+    outcome.command = command;
 
     process.chdir(cwd);
     return outcome;
@@ -115,8 +121,12 @@ class Terraform {
    * @param  {String} dirOrPlan Directory in which the plan resides
    * @return {Object}           shelljs execution outcome
    */
-  apply(args = {}, dirOrPlan = '') {
-    return this.terraform(`apply${this._constructOptString(args)} ${dirOrPlan}`);
+  apply(args = {}, dirOrPlan) {
+    let command = `apply${this._constructOptString(args)}`;
+    if (dirOrPlan) {
+      command = `${command} ${dirOrPlan}`;
+    }
+    return this.terraform(command);
   }
 
   /**
@@ -126,7 +136,11 @@ class Terraform {
    * @return {Object}           shelljs execution outcome
    */
   destroy(args = {}, dir = '') {
-    return this.terraform(`destroy${this._constructOptString(args)} ${dir}`);
+    let command = `destroy${this._constructOptString(args)}`;
+    if (dir) {
+      command = `${command} ${dir}`;
+    }
+    return this.terraform(command);
   }
 
   /**
@@ -135,8 +149,12 @@ class Terraform {
    * @param  {String} dir       Directory in which the plan resides
    * @return {Object}           shelljs execution outcome
    */
-  console(args = {}, dir = '') {
-    return this.terraform(`console${this._constructOptString(args)} ${dir}`);
+  console(args = {}, dir) {
+    let command = `console${this._constructOptString(args)}`;
+    if (dir) {
+      command = `${command} ${dir}`;
+    }
+    return this.terraform(command);
   }
 
   /**
@@ -145,8 +163,12 @@ class Terraform {
    * @param  {String} dir       Directory in which the plan resides
    * @return {Object}           shelljs execution outcome
    */
-  fmt(args = {}, dir = '') {
-    return this.terraform(`fmt${this._constructOptString(args)} ${dir}`);
+  fmt(args = {}, dir) {
+    let command = `fmt${this._constructOptString(args)}`;
+    if (dir) {
+      command = `${command} ${dir}`;
+    }
+    return this.terraform(command);
   }
 
   /**
@@ -156,7 +178,11 @@ class Terraform {
    * @return {Object}           shelljs execution outcome
    */
   get(args = {}, path = process.cwd()) {
-    return this.terraform(`get${this._constructOptString(args)} ${path}`);
+    let command = `get${this._constructOptString(args)}`;
+    if (path) {
+      command = `${command} ${path}`;
+    }
+    return this.terraform(command);
   }
 
   /**
@@ -165,8 +191,12 @@ class Terraform {
    * @param  {String} dir       Directory in which the plan resides
    * @return {Object}           shelljs execution outcome
    */
-  graph(args = {}, dir = '') {
-    return this.terraform(`graph${this._constructOptString(args)} ${dir}`);
+  graph(args = {}, dir) {
+    let command = `graph${this._constructOptString(args)}`;
+    if (dir) {
+      command = `${command} ${dir}`;
+    }
+    return this.terraform(command);
   }
 
   /**
@@ -188,7 +218,11 @@ class Terraform {
    * @return {Object}           shelljs execution outcome
    */
   init(args = {}, source, path = process.cwd()) {
-    return this.terraform(`init${this._constructOptString(args)} ${source} ${path}`);
+    let command = `init${this._constructOptString(args)} ${source}`;
+    if (path) {
+      command = `${command} ${path}`;
+    }
+    return this.terraform(command);
   }
 
   /**
@@ -198,7 +232,11 @@ class Terraform {
    * @return {Object}           shelljs execution outcome
    */
   output(args = {}, name) {
-    return this.terraform(`output${this._constructOptString(args)} ${name}`);
+    let command = `output${this._constructOptString(args)}`;
+    if (name) {
+      command = `${command} ${name}`;
+    }
+    return this.terraform(command);
   }
 
   /**
@@ -208,7 +246,11 @@ class Terraform {
    * @return {Object}           shelljs execution outcome
    */
   plan(args = {}, dirOrPlan) {
-    return this.terraform(`plan${this._constructOptString(args)} ${dirOrPlan}`);
+    let command = `plan${this._constructOptString(args)}`;
+    if (dirOrPlan) {
+      command = `${command} ${dirOrPlan}`;
+    }
+    return this.terraform(command);
   }
 
   /**
@@ -217,8 +259,12 @@ class Terraform {
    * @param  {String} dir       Directory in which the plan resides
    * @return {Object}           shelljs execution outcome
    */
-  push(args = {}, dir = '') {
-    return this.terraform(`push${this._constructOptString(args)} ${dir}`);
+  push(args = {}, dir) {
+    let command = `push${this._constructOptString(args)}`;
+    if (dir) {
+      command = `${command} ${dir}`;
+    }
+    return this.terraform(command);
   }
 
   /**
@@ -227,8 +273,12 @@ class Terraform {
    * @param  {String} dir       Directory in which the plan resides
    * @return {Object}           shelljs execution outcome
    */
-  refresh(args = {}, dir = '') {
-    return this.terraform(`refresh${this._constructOptString(args)} ${dir}`);
+  refresh(args = {}, dir) {
+    let command = `refresh${this._constructOptString(args)}`;
+    if (dir) {
+      command = `${command} ${dir}`;
+    }
+    return this.terraform(command);
   }
 
   /**
@@ -238,7 +288,11 @@ class Terraform {
    * @return {Object}           shelljs execution outcome
    */
   show(args = {}, path) {
-    return this.terraform(`show${this._constructOptString(args)} ${path}`);
+    let command = `show${this._constructOptString(args)}`;
+    if (path) {
+      command = `${command} ${path}`;
+    }
+    return this.terraform(command);
   }
 
   /**
@@ -268,7 +322,11 @@ class Terraform {
    * @return {Object}           shelljs execution outcome
    */
   validate(args = {}, path) {
-    return this.terraform(`validate${this._constructOptString(args)} ${path}`);
+    let command = `validate${this._constructOptString(args)}`;
+    if (path) {
+      command = `${command} ${path}`;
+    }
+    return this.terraform(command);
   }
 }
 

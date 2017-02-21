@@ -37,8 +37,10 @@
     "eslint-plugin-react": "^6.7.1",
     "istanbul": "^0.4.5",
     "mocha": "^3.2.0",
+    "proxyquire": "^1.7.11",
     "rimraf": "^2.6.0",
-    "sinon": "^1.17.7"
+    "sinon": "^1.17.7",
+    "testdouble": "^1.11.1"
   },
   "scripts": {
     "clean": "rimraf lib dist es coverage",
