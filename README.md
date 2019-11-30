@@ -1,6 +1,8 @@
 terraformjs
 ===========
 
+**Note: This isn't maintained any longer, as it's not used within Strigo**
+
 [![Travis Build Status](https://travis-ci.org/strigo/terraformjs.svg?branch=master)](https://travis-ci.org/strigo/terraformjs)
 [![AppVeyor Build Status](https://ci.appveyor.com/api/projects/status/kuf0x8j62kts1bpg/branch/master?svg=true)](https://ci.appveyor.com/project/strigo/terraformjs)
 [![Code Coverage](https://codecov.io/github/strigo/terraformjs/coverage.svg?branch=master)](https://codecov.io/github/strigo/terraformjs?branch=master)
